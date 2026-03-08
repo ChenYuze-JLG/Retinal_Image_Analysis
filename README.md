@@ -157,6 +157,7 @@ pip install -r requirements.txt
 3. Notebook demo:
    - Open `segmentation/retinal_seg_demo.ipynb`
 
+![Segmentation Example](https://github.com/ChenYuze-JLG/Retinal_Image_Analysis/blob/main/segmentation/outputs/20260307-230417/test_results/comparison_01.png)
 ---
 
 ## 6) Highlights & Learning Outcomes
@@ -173,14 +174,3 @@ pip install -r requirements.txt
 - This repository is an **exploratory demo**, not a clinical or benchmark system.
 - Training settings are intentionally lightweight; metrics are not meant to represent state-of-the-art performance.
 - Main value: showing practical understanding of retinal image analysis workflows.
-
----
-
-## 8) Optional demo assets
-
-If you want stronger GitHub presentation, you can place sample prediction images in repository and add:
-
-```markdown
-## Sample Results
-![Segmentation Example](segmentation/outputs/<timestamp>/test_results/comparison_01.png)
-```
