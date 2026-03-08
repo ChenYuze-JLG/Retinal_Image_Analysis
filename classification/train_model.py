@@ -9,36 +9,35 @@ from tqdm import tqdm
 import time
 import json
 
-# 导入我们自己编写的辅助工具
 from utils import get_data_transforms, get_class_names
 
 def train_model(data_dir, output_dir, num_epochs=25, batch_size=16, learning_rate=0.001):
     """
-    训练图像分类模型。
+    Train an image classification model.
 
-    参数:
-    - data_dir (str): 采样后数据集的根目录。
-    - output_dir (str): 保存模型和日志的输出根目录。
-    - num_epochs (int): 训练的总轮数。
-    - batch_size (int): 每个批次的图片数量。
-    - learning_rate (float): 学习率。
+    Args:
+    - data_dir (str): root folder of sampled dataset.
+    - output_dir (str): folder to save model and logs.
+    - num_epochs (int): total number of training epochs.
+    - batch_size (int): number of images per batch.
+    - learning_rate (float): learning rate.
     """
-    print("开始模型训练...")
-    print(f"PyTorch 版本: {torch.__version__}")
-    print(f"CUDA 是否可用: {torch.cuda.is_available()}")
+    print("Starting training...")
+    print(f"PyTorch version: {torch.__version__}")
+    print(f"CUDA available: {torch.cuda.is_available()}")
     device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
-    print(f"将使用设备: {device}")
+    print(f"Using device: {device}")
 
-    # 1. 准备数据
+    # 1. Prepare data
     data_transforms = get_data_transforms()
     full_dataset = datasets.ImageFolder(data_dir, data_transforms['train'])
 
-    # 划分训练集和验证集 (2:1)
+    # Split into train and validation sets (2:1)
     train_size = int(0.67 * len(full_dataset))
     val_size = len(full_dataset) - train_size
     train_dataset, val_dataset = random_split(full_dataset, [train_size, val_size])
 
-    # 为验证集设置正确的数据转换
+    # Use validation transforms for val set
     val_dataset.dataset.transform = data_transforms['val']
 
     dataloaders = {
@@ -49,42 +48,41 @@ def train_model(data_dir, output_dir, num_epochs=25, batch_size=16, learning_rat
     class_names = get_class_names(data_dir)
     num_classes = len(class_names)
 
-    print(f"数据集信息: 总数={len(full_dataset)}, 训练集={dataset_sizes['train']}, 验证集={dataset_sizes['val']}")
-    print(f"共 {num_classes} 个类别。")
+    print(f"Dataset info: total={len(full_dataset)}, train={dataset_sizes['train']}, val={dataset_sizes['val']}")
+    print(f"Number of classes: {num_classes}")
 
-    # 2. 定义模型
-    # 使用SqueezeNet 1.1，它是一个非常小且高效的模型
+    # 2. Define model
+    # Use SqueezeNet 1.1 (small and efficient)
     model = models.squeezenet1_1(pretrained=True)
 
-    # 冻结预训练模型的参数
+    # Freeze all pretrained parameters
     for param in model.parameters():
         param.requires_grad = False
 
-    # 替换分类器层以匹配我们的类别数量
-    # SqueezeNet的分类器是一个Conv2d层
+    # Replace classifier to match our number of classes
     model.classifier[1] = nn.Conv2d(512, num_classes, kernel_size=(1,1), stride=(1,1))
     model.num_classes = num_classes
 
     model = model.to(device)
 
-    # 3. 定义损失函数和优化器
+    # 3. Define loss and optimizer
     criterion = nn.CrossEntropyLoss()
-    # 只优化我们新添加的分类器层的参数
+    # Only train classifier layer
     optimizer = optim.Adam(model.classifier.parameters(), lr=learning_rate)
 
-    # 4. 创建输出目录和TensorBoard writer
+    # 4. Prepare output folder and TensorBoard writer
     timestamp = time.strftime("%Y%m%d-%H%M%S")
     model_output_dir = os.path.join(output_dir, timestamp)
     os.makedirs(model_output_dir, exist_ok=True)
     writer = SummaryWriter(log_dir=os.path.join(model_output_dir, 'tensorboard_logs'))
 
-    # 保存类别名称到文件，方便预测时使用
+    # Save class names for later use
     with open(os.path.join(model_output_dir, 'class_names.json'), 'w') as f:
         json.dump(class_names, f)
 
-    print(f"模型和日志将保存在: {model_output_dir}")
+    print(f"Model and logs will be saved at: {model_output_dir}")
 
-    # 5. 训练循环
+    # 5. Training loop
     best_model_wts = model.state_dict()
     best_acc = 0.0
 
@@ -93,15 +91,12 @@ def train_model(data_dir, output_dir, num_epochs=25, batch_size=16, learning_rat
         print('-' * 10)
 
         for phase in ['train', 'val']:
-            if phase == 'train':
-                model.train()
-            else:
-                model.eval()
+            model.train() if phase == 'train' else model.eval()
 
             running_loss = 0.0
             running_corrects = 0
 
-            # 使用tqdm显示进度条
+            # Progress bar
             progress_bar = tqdm(dataloaders[phase], desc=f"{phase.capitalize()} Epoch {epoch+1}")
             for inputs, labels in progress_bar:
                 inputs = inputs.to(device)
@@ -128,31 +123,30 @@ def train_model(data_dir, output_dir, num_epochs=25, batch_size=16, learning_rat
 
             print(f'{phase} Loss: {epoch_loss:.4f} Acc: {epoch_acc:.4f}')
 
-            # 记录到TensorBoard
+            # Log metrics to TensorBoard
             writer.add_scalar(f'Loss/{phase}', epoch_loss, epoch)
             writer.add_scalar(f'Accuracy/{phase}', epoch_acc, epoch)
 
-            # 保存最佳模型
+            # Save best model
             if phase == 'val' and epoch_acc > best_acc:
                 best_acc = epoch_acc
                 best_model_wts = model.state_dict()
                 torch.save(model.state_dict(), os.path.join(model_output_dir, 'best_model.pth'))
-                print("已保存新的最佳模型！")
+                print("Saved new best model!")
 
     writer.close()
-    print(f'\n训练完成！最佳验证集准确率: {best_acc:4f}')
-    print(f"最佳模型已保存在: {os.path.join(model_output_dir, 'best_model.pth')}")
+    print(f'\nTraining complete! Best val accuracy: {best_acc:.4f}')
+    print(f"Best model saved at: {os.path.join(model_output_dir, 'best_model.pth')}")
 
 
 if __name__ == '__main__':
-    # --- 配置区域 ---
-    DATASET_DIR = r'classification/datasets/sampled_images'
-    OUTPUT_DIR = r'classification/outputs'
+    # --- Config ---
+    DATASET_DIR = r'./datasets/sampled_images'
+    OUTPUT_DIR = r'./outputs'
 
-    # 训练参数
-    NUM_EPOCHS = 20  # 可以根据需要调整
-    BATCH_SIZE = 16  # 如果显存不足，可以减小这个值
+    NUM_EPOCHS = 20  # adjust if needed
+    BATCH_SIZE = 16  # reduce if GPU memory is limited
     LEARNING_RATE = 0.001
-    # --- 配置区域结束 ---
+    # --- End config ---
 
     train_model(DATASET_DIR, OUTPUT_DIR, num_epochs=NUM_EPOCHS, batch_size=BATCH_SIZE, learning_rate=LEARNING_RATE)
