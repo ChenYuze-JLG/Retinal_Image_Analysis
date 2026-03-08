@@ -153,6 +153,8 @@ pip install -r requirements.txt
 3. 可视化：
    - 打开 `segmentation/retinal_seg_demo.ipynb`
 
+![分割示例](https://github.com/ChenYuze-JLG/Retinal_Image_Analysis/blob/main/segmentation/outputs/20260307-230417/test_results/comparison_01.png)
+
 ---
 
 ## 6）项目亮点与学习收获
