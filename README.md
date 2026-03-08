@@ -156,8 +156,7 @@ pip install -r requirements.txt
    - Prints average vessel density and skeleton length
 3. Notebook demo:
    - Open `segmentation/retinal_seg_demo.ipynb`
-
-![Segmentation Example](https://github.com/ChenYuze-JLG/Retinal_Image_Analysis/blob/main/segmentation/outputs/20260307-230417/test_results/comparison_01.png)
+   - ![Segmentation Example](https://github.com/ChenYuze-JLG/Retinal_Image_Analysis/blob/main/segmentation/outputs/20260307-230417/test_results/comparison_01.png)
 ---
 
 ## 6) Highlights & Learning Outcomes
