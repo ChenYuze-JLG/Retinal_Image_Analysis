@@ -68,7 +68,7 @@ def evaluate(config):
     test_dataset = DRIVEDataset(
         root_dir=config['data_dir'],
         transform=transforms,
-        subset='test'
+        subset='train'  # using training sets for visualization
     )
 
     test_loader = DataLoader(

@@ -62,7 +62,7 @@ def save_comparison_plot(original_img, gt_mask, pred_mask, save_path):
     Save a three-panel comparison plot:
     input image, ground truth mask, and predicted mask.
     """
-    fig, axes = plt.subplots(1, 3, figsize=(18, 6))
+    fig, axes = plt.subplots(1, 3, figsize=(18, 8))
 
     axes[0].imshow(original_img)
     axes[0].set_title('Input Retinal Image')
